@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CS125-Project",
-    "slug": "CS125-Project",
+    "slug": "main",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jnguyen629.appCS125Project"
+      "bundleIdentifier": "com.algo-rhythm.main"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.jnguyen629.appCS125Project"
+      "package": "com.algo-rhythm.main"
     },
     "web": {
       "output": "static",
@@ -49,12 +49,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "00f6adec-5fb0-4bba-b454-3e4829fce667"
+        "projectId": "06091f66-6d20-43ef-a800-c861f4e2b3c2"
       }
     },
-    "owner": "jnguyen629",
+    "owner": "algo-rhythm",
     "updates": {
-      "url": "https://u.expo.dev/00f6adec-5fb0-4bba-b454-3e4829fce667"
+      "url": "https://u.expo.dev/06091f66-6d20-43ef-a800-c861f4e2b3c2"
     },
     "runtimeVersion": {
       "policy": "appVersion"
