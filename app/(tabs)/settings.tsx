@@ -1,3 +1,6 @@
+/*
+  * Settings Screen - Allows users to select their favorite artists and genres, which will be used to personalize their experience in the Search screen.
+*/
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { ARTIST_OPTIONS, GENRE_OPTIONS } from '@/assets/data/spotify-preferences';

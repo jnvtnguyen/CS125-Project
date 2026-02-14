@@ -1,3 +1,6 @@
+/*
+  * Search Screen - Allows users to search for songs based on mood, time of day, and their preferences (found in settings.tsx).
+*/
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
 
@@ -7,6 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { usePreferences } from '@/hooks/use-preferences';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+// OPTIONS FOR SELECT FIELDS, TIME AND MOOD
 const MOOD_OPTIONS = [
   { label: 'Energetic', value: 'energetic' },
   { label: 'Melancholic', value: 'melancholic' },
@@ -26,24 +30,36 @@ const TIME_OPTIONS = [
 ];
 
 type SearchResult = {
-  trackName: string;
-  albumName: string;
+  track_name: string;
+  album_name: string;
   artists: string;
 };
 
+const MOCK_RESULTS: SearchResult[] = [
+  {
+    track_name: 'Mock Song 1',
+    album_name: 'Mock Album 1',
+    artists: 'Mock Artist 1',
+  },
+  {
+    track_name: 'Mock Song 2',
+    album_name: 'Mock Album 2',
+    artists: 'Mock Artist 2',
+  },
+];
+
 function SearchButton({ onPress, isLoading }: { onPress: () => void; isLoading: boolean }) {
   const backgroundColor = useThemeColor({}, 'tint');
-  const buttonTextColor = useThemeColor({ light: '#FFFFFF', dark: '#151718' }, 'text');
-  const loadingIndicatorColor = useThemeColor({ light: '#FFFFFF', dark: '#151718' }, 'text');
+  const buttonTextColor = useThemeColor({ light: '#ffffff', dark: '#151718' }, 'text');
+  const loadingIndicatorColor = useThemeColor({ light: '#ffffff', dark: '#151718' }, 'text');
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isLoading}
-      style={({ pressed }) => [
+      style={() => [
         styles.searchButton,
         { backgroundColor },
-        pressed && !isLoading ? styles.searchButtonPressed : null,
         isLoading ? styles.searchButtonDisabled : null,
       ]}>
       {isLoading ? (
@@ -58,11 +74,16 @@ function SearchButton({ onPress, isLoading }: { onPress: () => void; isLoading: 
 }
 
 export default function SearchScreen() {
+  const { favoriteArtists, favoriteGenres } = usePreferences();
   const [mood, setMood] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const { favoriteArtists, favoriteGenres } = usePreferences();
+  const resultCardBorderColor = useThemeColor({}, 'icon');
+  const resultCardBackgroundColor = useThemeColor(
+    { light: '#faf7f7', dark: '#202325' },
+    'background'
+  );
 
   const onSearch = async () => {
     setLoading(true);
@@ -75,12 +96,12 @@ export default function SearchScreen() {
           time,
           settings: {
             favoriteArtists,
-            favoriteGenres
-          }
+            favoriteGenres,
+          },
         }),
       });
       const data = await response.json();
-      setResults(data.results);
+      setResults(data.results.length > 0 ? data.results : MOCK_RESULTS);
     } catch (error) {
       console.error('Search Failed:', error);
     } finally {
@@ -107,6 +128,26 @@ export default function SearchScreen() {
           onChange={setTime}
         />
         <SearchButton onPress={onSearch} isLoading={loading} />
+        {results.length > 0 ? (
+          <ThemedView style={styles.resultsSection}>
+            <ThemedText type="subtitle">Top 15 Songs</ThemedText>
+            {results.map((song, index) => (
+              <ThemedView
+                key={`${song.track_name}-${song.album_name}-${index}`}
+                style={[
+                  styles.resultCard,
+                  {
+                    borderColor: resultCardBorderColor,
+                    backgroundColor: resultCardBackgroundColor,
+                  },
+                ]}>
+                <ThemedText type="defaultSemiBold">{`${index + 1}. ${song.track_name}`}</ThemedText>
+                <ThemedText>{song.artists}</ThemedText>
+                <ThemedText>{song.album_name}</ThemedText>
+              </ThemedView>
+            ))}
+          </ThemedView>
+        ) : null}
       </ScrollView>
     </ThemedView>
   );
@@ -131,9 +172,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  searchButtonPressed: {
-    opacity: 0.88,
-  },
   searchButtonDisabled: {
     opacity: 0.7,
   },
@@ -141,5 +179,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 20,
+  },
+  resultsSection: {
+    gap: 12,
+  },
+  resultCard: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  noResultsTitle: {
+    fontSize: 18,
+    lineHeight: 24,
   },
 });
