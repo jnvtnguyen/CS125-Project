@@ -1,27 +1,14 @@
+/*
+  * This hook manages the user's preferences for favorite artists and genres. Saving and loading preferences and persistence across app sessions
+    is done by using the expo-sqlite/kv-store library.
+*/
 import Storage from 'expo-sqlite/kv-store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEYS = {
-  artists: 'settings.favoriteArtists',
-  genres: 'settings.favoriteGenres',
+  artists: 'settings.favorite_artists',
+  genres: 'settings.favorite_genres',
 } as const;
-
-const parseStoredArray = (raw: string | null) => {
-  if (!raw) {
-    return [] as string[];
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item) => typeof item === 'string');
-    }
-  } catch (error) {
-    console.error('failed to parse stored preferences', error);
-  }
-
-  return [] as string[];
-};
 
 export function usePreferences() {
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
@@ -31,7 +18,7 @@ export function usePreferences() {
 
   const refresh = useCallback(async () => {
     try {
-      const [artistsRaw, genresRaw] = await Promise.all([
+      const [artists, genres] = await Promise.all([
         Storage.getItem(STORAGE_KEYS.artists),
         Storage.getItem(STORAGE_KEYS.genres),
       ]);
@@ -40,8 +27,8 @@ export function usePreferences() {
         return;
       }
 
-      setFavoriteArtists(parseStoredArray(artistsRaw));
-      setFavoriteGenres(parseStoredArray(genresRaw));
+      setFavoriteArtists(artists ? JSON.parse(artists) : []);
+      setFavoriteGenres(genres ? JSON.parse(genres) : []);
     } catch (error) {
       console.error('failed to load settings preferences', error);
     } finally {
