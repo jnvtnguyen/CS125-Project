@@ -1,7 +1,8 @@
 /*
   * Search Screen - Allows users to search for songs based on mood, time of day, and their preferences (found in settings.tsx).
 */
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { SelectField } from '@/components/select-fields';
@@ -74,7 +75,14 @@ function SearchButton({ onPress, isLoading }: { onPress: () => void; isLoading: 
 }
 
 export default function SearchScreen() {
-  const { favoriteArtists, favoriteGenres } = usePreferences();
+  const { favoriteArtists, favoriteGenres, refresh } = usePreferences();
+
+  // Refresh preferences from storage whenever this tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
   const [mood, setMood] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
