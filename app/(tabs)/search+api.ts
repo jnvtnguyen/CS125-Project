@@ -41,12 +41,6 @@ type SpotifyAPITrack = {
 };
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const userToken =
-    authHeader && authHeader.startsWith("Bearer ")
-      ? authHeader.slice("Bearer ".length)
-      : null;
-
   const data: SearchData = await request.json();
 
   let mood: string = data.mood.toLowerCase();
@@ -65,7 +59,6 @@ export async function POST(request: Request) {
 
   let spotify_data: SpotifyAPITrack[] = await get_all_tracks(
     spotify_codes,
-    userToken,
   );
 
   let results: SearchResult[] = [];
@@ -131,9 +124,8 @@ async function get_track(id: string, token: string): Promise<SpotifyAPITrack> {
 
 async function get_all_tracks(
   ids: string[],
-  userToken: string | null,
 ): Promise<SpotifyAPITrack[]> {
-  const token = userToken ?? (await get_access_token());
+  const token = await get_access_token();
 
   let tracks = await Promise.all(ids.map((id) => get_track(id, token)));
 
