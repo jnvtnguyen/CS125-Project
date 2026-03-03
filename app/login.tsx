@@ -15,6 +15,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 type AuthExchangeResponse = {
   access_token?: string;
+  refresh_token?: string;
   error?: string;
 };
 
@@ -74,7 +75,7 @@ export default function LoginScreen() {
       });
       const auth: AuthExchangeResponse = await response.json();
 
-      if (!response.ok || !auth.access_token) {
+      if (!response.ok || !auth.access_token || !auth.refresh_token) {
         console.error(
           "Spotify Token Exchange Failed:",
           auth.error || "Unknown Error",
