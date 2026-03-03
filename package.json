@@ -27,6 +27,7 @@
     "expo-image": "~3.0.8",
     "expo-linking": "~8.0.8",
     "expo-router": "~6.0.8",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.10",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.8",
@@ -49,6 +50,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "prettier": "3.8.1",
     "typescript": "~5.9.2"
   }
 }
