@@ -1,7 +1,7 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -11,11 +11,16 @@ import {
   View,
 } from "react-native";
 
+import { SpotifyAuth } from "@/app/spotify-auth";
+
 WebBrowser.maybeCompleteAuthSession();
 
 type AuthExchangeResponse = {
   access_token?: string;
   refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
   error?: string;
 };
 
@@ -23,7 +28,29 @@ const REDIRECT_URI = "algo-rhythm://spotify-auth-callback";
 
 export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? "";
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Check for Existing Spotify Session
+    const resolve = async () => {
+      const token = await SpotifyAuth.get();
+      if (isMounted && token) {
+        router.replace("/(tabs)/search");
+        return;
+      }
+      if (isMounted) {
+        setIsCheckingSession(false);
+      }
+    };
+
+    resolve();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const onAuthorizeClick = async () => {
     if (!clientId) {
@@ -71,11 +98,16 @@ export default function LoginScreen() {
       const response = await fetch("/spotify-auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, redirect_uri: REDIRECT_URI })
+        body: JSON.stringify({ code, redirect_uri: REDIRECT_URI }),
       });
       const auth: AuthExchangeResponse = await response.json();
 
-      if (!response.ok || !auth.access_token || !auth.refresh_token) {
+      if (
+        !response.ok ||
+        !auth.access_token ||
+        !auth.refresh_token ||
+        !auth.expires_in
+      ) {
         console.error(
           "Spotify Token Exchange Failed:",
           auth.error || "Unknown Error",
@@ -83,7 +115,7 @@ export default function LoginScreen() {
         return;
       }
 
-      // Save State From Token Exchange in Secure Store
+      await SpotifyAuth.save(auth);
 
       router.replace("/(tabs)/search");
     } catch {
@@ -92,6 +124,19 @@ export default function LoginScreen() {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color="#1DB954" size="large" />
+          </View>
+        </SafeAreaView>
+      </>
+    );
+  }
 
   return (
     <>
@@ -133,6 +178,11 @@ const styles = StyleSheet.create({
     gap: 24,
     paddingHorizontal: 20,
     paddingVertical: 32,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoWrap: {
     alignItems: "center",
