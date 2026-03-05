@@ -1,7 +1,8 @@
 /*
  * Settings Screen - Allows users to select their favorite artists and genres, which will be used to personalize their experience in the Search screen.
  */
-import { ScrollView, StyleSheet } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 
 import {
   ARTIST_OPTIONS,
@@ -19,6 +20,28 @@ export default function SettingsScreen() {
     setFavoriteArtists,
     setFavoriteGenres,
   } = usePreferences();
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncSpotify = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error("Sync failed");
+      }
+
+      Alert.alert("Success", "Your Spotify profile has been synced!");
+    } catch (error) {
+      Alert.alert("Error", "Failed to sync Spotify profile. Please try again.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <ThemedView style={styles.screen}>
@@ -48,6 +71,21 @@ export default function SettingsScreen() {
           onChange={setFavoriteGenres}
         />
       </ScrollView>
+
+      <ThemedView style={styles.footer}>
+        <TouchableOpacity
+          style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+          onPress={handleSyncSpotify}
+          disabled={isSyncing}
+          activeOpacity={0.8}
+        >
+          {isSyncing ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <ThemedText style={styles.syncButtonText}>Sync Spotify Profile</ThemedText>
+          )}
+        </TouchableOpacity>
+      </ThemedView>
     </ThemedView>
   );
 }
@@ -65,5 +103,27 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 8,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  },
+  syncButton: {
+    backgroundColor: "#1DB954",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
+  },
+  syncButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
