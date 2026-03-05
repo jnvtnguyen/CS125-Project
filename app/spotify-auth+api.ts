@@ -65,18 +65,3 @@ async function get_access_token(code: string): Promise<AccessData> {
 
   return response.json();
 }
-
-/*
-async function get_top_artists(token: string) {
-    const response = await fetch(
-    `https://api.spotify.com/v1/me/top/artists`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  return response.json();
-}
-*/
