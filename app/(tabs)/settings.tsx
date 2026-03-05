@@ -38,6 +38,9 @@ export default function SettingsScreen() {
       if (!response.ok) {
         throw new Error("Sync failed");
       }
+      const {artists, genres} =  await response.json();
+      setFavoriteArtists(artists);
+      setFavoriteGenres(genres);
 
       Alert.alert("Success", "Your Spotify profile has been synced!");
     } catch (error) {

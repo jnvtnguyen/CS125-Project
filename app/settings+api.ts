@@ -6,6 +6,10 @@ export async function POST(request: Request) {
     console.log(artists);
     console.log(genres);
 
+    return new Response(JSON.stringify({ artists, genres }), {
+    headers: { "Content-Type": "application/json" },
+    });
+
     //const vector: number[] = await get_user_vector(token);
 }
 
