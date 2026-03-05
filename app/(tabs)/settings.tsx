@@ -1,9 +1,7 @@
 /*
  * Settings Screen - Allows users to select their favorite artists and genres, which will be used to personalize their experience in the Search screen.
  */
-import { useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
-
+import { SpotifyAuth } from "@/app/spotify-auth";
 import {
   ARTIST_OPTIONS,
   GENRE_OPTIONS,
@@ -12,6 +10,8 @@ import { MultiSelectField } from "@/components/select-fields";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { usePreferences } from "@/hooks/use-preferences";
+import { useState } from "react";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 
 export default function SettingsScreen() {
   const {
@@ -26,9 +26,13 @@ export default function SettingsScreen() {
   const handleSyncSpotify = async () => {
     setIsSyncing(true);
     try {
+      const token = await SpotifyAuth.get();
       const response = await fetch("/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
       });
 
       if (!response.ok) {

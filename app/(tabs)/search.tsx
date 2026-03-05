@@ -9,6 +9,8 @@ import {
   StyleSheet,
 } from "react-native";
 
+import { SpotifyAuth } from "@/app/spotify-auth";
+
 import { SelectField } from "@/components/select-fields";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -108,10 +110,12 @@ export default function SearchScreen() {
   const onSearch = async () => {
     setLoading(true);
     try {
+      const token = await SpotifyAuth.get();
       const response = await fetch("/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({
           mood,

@@ -6,7 +6,6 @@ API needs to return data in the form:
     artists: 'Mock Artist 1',
 }
 */
-import { SpotifyAuth } from "@/app/spotify-auth";
 import { fs, index } from "../data";
 const MAX_RESULTS: number = 3;
 
@@ -42,7 +41,10 @@ type SpotifyAPITrack = {
 };
 
 export async function POST(request: Request) {
+  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
   const data: SearchData = await request.json();
+
+  if(!token) throw new Error("User not authenticated with Spotify");
 
   let mood: string = data.mood.toLowerCase();
   let time: string = data.time.toLowerCase();
@@ -56,10 +58,9 @@ export async function POST(request: Request) {
   for (let i = 0; i < MAX_RESULTS; i++) {
     spotify_codes.push(fs.spotify_ids[ranked_songs[i]]);
   }
-  console.log(spotify_codes);
 
   let spotify_data: SpotifyAPITrack[] = await get_all_tracks(
-    spotify_codes,
+    spotify_codes,token
   );
 
   let results: SearchResult[] = [];
@@ -102,13 +103,8 @@ async function get_track(id: string, token: string): Promise<SpotifyAPITrack> {
   return response.json();
 }
 
-async function get_all_tracks(ids: string[],): Promise<SpotifyAPITrack[]> {
-  const token = await SpotifyAuth.get();
-
-  if(!token) throw new Error("User not authenticated with Spotify");
-
+async function get_all_tracks(ids: string[], token: string): Promise<SpotifyAPITrack[]> {
   let tracks = await Promise.all(ids.map((id) => get_track(id, token)));
 
-  console.log(tracks);
   return tracks;
 }

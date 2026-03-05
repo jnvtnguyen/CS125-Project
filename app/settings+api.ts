@@ -1,8 +1,5 @@
-import { SpotifyAuth } from "@/app/spotify-auth";
-
-
 export async function POST(request: Request) {
-    const token = await SpotifyAuth.get();
+    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
     if(!token) throw new Error("User not authenticated with Spotify");
 
     const { artists, genres } = await get_top_artists_and_genres(token);
