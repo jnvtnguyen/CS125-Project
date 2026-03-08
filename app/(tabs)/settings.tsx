@@ -19,6 +19,7 @@ export default function SettingsScreen() {
     favoriteGenres,
     setFavoriteArtists,
     setFavoriteGenres,
+    setUserVector,
   } = usePreferences();
 
   const [isSyncing, setIsSyncing] = useState(false);
@@ -38,9 +39,10 @@ export default function SettingsScreen() {
       if (!response.ok) {
         throw new Error("Sync failed");
       }
-      const {artists, genres} =  await response.json();
+      const {artists, genres, user_vector} =  await response.json();
       setFavoriteArtists(artists);
       setFavoriteGenres(genres);
+      setUserVector(user_vector);
 
       Alert.alert("Success", "Your Spotify profile has been synced!");
     } catch (error) {

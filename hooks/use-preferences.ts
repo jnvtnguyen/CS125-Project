@@ -8,19 +8,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const STORAGE_KEYS = {
   artists: "settings.favorite_artists",
   genres: "settings.favorite_genres",
+  userVector: "settings.user_vector",
 } as const;
 
 export function usePreferences() {
   const [favoriteArtists, setFavoriteArtists] = useState<string[]>([]);
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  const [userVector, setUserVector] = useState<number[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const isMounted = useRef(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [artists, genres] = await Promise.all([
+      const [artists, genres, user_vector] = await Promise.all([
         Storage.getItem(STORAGE_KEYS.artists),
         Storage.getItem(STORAGE_KEYS.genres),
+        Storage.getItem(STORAGE_KEYS.userVector),
       ]);
 
       if (!isMounted.current) {
@@ -29,6 +32,7 @@ export function usePreferences() {
 
       setFavoriteArtists(artists ? JSON.parse(artists) : []);
       setFavoriteGenres(genres ? JSON.parse(genres) : []);
+      setUserVector(user_vector ? JSON.parse(user_vector) : []);
     } catch (error) {
       console.error("failed to load settings preferences", error);
     } finally {
@@ -84,12 +88,33 @@ export function usePreferences() {
     persistGenres();
   }, [favoriteGenres, isHydrated]);
 
+  useEffect(() => {
+    if (!isHydrated || userVector.length === 0) {
+      return;
+    }
+
+    const persistUserVector = async () => {
+      try {
+        await Storage.setItem(
+          STORAGE_KEYS.userVector,
+          JSON.stringify(userVector),
+        );
+      } catch (error) {
+        console.error("failed to persist user vector", error);
+      }
+    };
+
+    persistUserVector();
+  }, [userVector, isHydrated]);
+
   return {
     favoriteArtists,
     favoriteGenres,
+    userVector,
     isHydrated,
     setFavoriteArtists,
     setFavoriteGenres,
+    setUserVector,
     refresh,
   };
 }

@@ -96,7 +96,7 @@ function SearchButton({
 }
 
 export default function SearchScreen() {
-  const { favoriteArtists, favoriteGenres } = usePreferences();
+  const { favoriteArtists, favoriteGenres, userVector } = usePreferences();
   const [mood, setMood] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -123,6 +123,7 @@ export default function SearchScreen() {
           settings: {
             favoriteArtists,
             favoriteGenres,
+            userVector,
           },
         }),
       });

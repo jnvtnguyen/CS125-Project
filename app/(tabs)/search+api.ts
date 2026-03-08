@@ -15,6 +15,7 @@ type SearchData = {
   settings: {
     favoriteArtists: string[];
     favoriteGenres: string[];
+    userVector: number[];
   };
 };
 
@@ -48,6 +49,12 @@ export async function POST(request: Request) {
 
   let mood: string = data.mood.toLowerCase();
   let time: string = data.time.toLowerCase();
+  let artistPref: string[] = data.settings.favoriteArtists;
+  let genrePref: string[] = data.settings.favoriteGenres;
+  let userVector: number[] = data.settings.userVector;
+
+  console.log("User Vector:");
+  console.log(userVector);
 
   let intersect_songs: number[] = get_songs(mood, time);
 

@@ -11,9 +11,6 @@ export async function POST(request: Request) {
 
     const { artists, genres } = await get_top_artists_and_genres(token);
     const user_vector = await get_user_vector(token);
-    console.log(artists);
-    console.log(genres);
-    console.log(user_vector);
 
     return new Response(JSON.stringify({ artists, genres, user_vector}), {
     headers: { "Content-Type": "application/json" },
