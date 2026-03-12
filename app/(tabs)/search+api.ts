@@ -23,6 +23,8 @@ type SearchResult = {
   track_name: string;
   album_name: string;
   artists: string;
+  album_art: string | null;
+  spotify_id: string;
 };
 
 type SpotifyAPITrack = {
@@ -77,6 +79,8 @@ export async function POST(request: Request) {
       track_name: spotify_data[i].name,
       album_name: spotify_data[i].album.name,
       artists: spotify_data[i].artists[0].name,
+      album_art: spotify_data[i].album.images?.[0]?.url ?? null,
+      spotify_id: spotify_data[i].id,
     };
     results.push(result);
   }

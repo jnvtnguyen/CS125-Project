@@ -4,10 +4,13 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
+  View,
 } from "react-native";
+import { WebView } from "react-native-webview";
 
 import { SpotifyAuth } from "@/app/spotify-auth";
 
@@ -40,20 +43,9 @@ type SearchResult = {
   track_name: string;
   album_name: string;
   artists: string;
+  album_art: string | null;
+  spotify_id: string;
 };
-
-const MOCK_RESULTS: SearchResult[] = [
-  {
-    track_name: "Mock Song 1",
-    album_name: "Mock Album 1",
-    artists: "Mock Artist 1",
-  },
-  {
-    track_name: "Mock Song 2",
-    album_name: "Mock Album 2",
-    artists: "Mock Artist 2",
-  },
-];
 
 function SearchButton({
   onPress,
@@ -101,6 +93,7 @@ export default function SearchScreen() {
   const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const resultCardBorderColor = useThemeColor({}, "icon");
   const resultCardBackgroundColor = useThemeColor(
     { light: "#faf7f7", dark: "#202325" },
@@ -108,6 +101,7 @@ export default function SearchScreen() {
   );
 
   const onSearch = async () => {
+    setSelectedTrackId(null);
     setLoading(true);
     try {
       const token = await SpotifyAuth.get();
@@ -128,7 +122,7 @@ export default function SearchScreen() {
         }),
       });
       const data = await response.json();
-      setResults(data.results.length > 0 ? data.results : MOCK_RESULTS);
+      setResults(data.results ?? []);
     } catch (error) {
       console.error("Search Failed:", error);
     } finally {
@@ -162,24 +156,63 @@ export default function SearchScreen() {
           <ThemedView style={styles.resultsSection}>
             <ThemedText type="subtitle">Top 15 Songs</ThemedText>
             {results.map((song, index) => (
-              <ThemedView
+              <Pressable
                 key={`${song.track_name}-${song.album_name}-${index}`}
-                style={[
-                  styles.resultCard,
-                  {
-                    borderColor: resultCardBorderColor,
-                    backgroundColor: resultCardBackgroundColor,
-                  },
-                ]}
+                onPress={() => setSelectedTrackId(song.spotify_id)}
               >
-                <ThemedText type="defaultSemiBold">{`${index + 1}. ${song.track_name}`}</ThemedText>
-                <ThemedText>{song.artists}</ThemedText>
-                <ThemedText>{song.album_name}</ThemedText>
-              </ThemedView>
+                <ThemedView
+                  style={[
+                    styles.resultCard,
+                    {
+                      borderColor:
+                        selectedTrackId === song.spotify_id
+                          ? "#1DB954"
+                          : resultCardBorderColor,
+                      backgroundColor: resultCardBackgroundColor,
+                      borderWidth: selectedTrackId === song.spotify_id ? 2 : 1,
+                    },
+                  ]}
+                >
+                  <View style={styles.resultRow}>
+                    {song.album_art ? (
+                      <Image
+                        source={{ uri: song.album_art }}
+                        style={styles.albumArt}
+                      />
+                    ) : (
+                      <View
+                        style={[styles.albumArt, styles.albumArtPlaceholder]}
+                      />
+                    )}
+                    <View style={styles.trackInfo}>
+                      <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                        {`${index + 1}. ${song.track_name}`}
+                      </ThemedText>
+                      <ThemedText numberOfLines={1}>{song.artists}</ThemedText>
+                      <ThemedText numberOfLines={1} style={styles.albumText}>
+                        {song.album_name}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </ThemedView>
+              </Pressable>
             ))}
           </ThemedView>
         ) : null}
       </ScrollView>
+
+      {selectedTrackId ? (
+        <View style={styles.playerContainer}>
+          <WebView
+            source={{
+              uri: `https://open.spotify.com/embed/track/${selectedTrackId}?utm_source=generator&theme=0`,
+            }}
+            style={styles.player}
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+          />
+        </View>
+      ) : null}
     </ThemedView>
   );
 }
@@ -191,7 +224,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 100,
     paddingTop: 16,
     gap: 20,
   },
@@ -219,7 +252,39 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 4,
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  albumArt: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+  },
+  albumArtPlaceholder: {
+    backgroundColor: "#333",
+  },
+  trackInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  albumText: {
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  playerContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: "#000",
+  },
+  player: {
+    flex: 1,
+    backgroundColor: "#000",
   },
   noResultsTitle: {
     fontSize: 18,
