@@ -1,5 +1,11 @@
 /*
  * Search Screen - Allows users to search for songs based on mood, time of day, and their preferences (found in settings.tsx).
+
+Times (from analysis.py):
+    Morning (4am - 12pm)
+    Afternoon (12pm - 6pm)
+    Evening (6pm - 10pm)
+    Night (10pm - 4am)
  */
 import { useState } from "react";
 import {
@@ -33,12 +39,14 @@ const MOOD_OPTIONS = [
   { label: "Romantic", value: "romantic" },
 ];
 
-const TIME_OPTIONS = [
-  { label: "Morning", value: "morning" },
-  { label: "Afternoon", value: "afternoon" },
-  { label: "Evening", value: "evening" },
-  { label: "Night", value: "night" },
-];
+function currentTimeOfDay(): string {
+  const hour = new Date().getHours();
+  console.log(hour);
+  if (hour >= 4 && hour < 12) return "morning";
+  if (hour >= 12 && hour < 18) return "afternoon";
+  if (hour >= 18 && hour < 20) return "evening";
+  return "night";
+}
 
 type SearchResult = {
   track_name: string;
@@ -101,7 +109,6 @@ function nudgeVector(userVector: number[], songVector: number[], liked: boolean)
 export default function SearchScreen() {
   const { favoriteArtists, favoriteGenres, userVector, setUserVector } = usePreferences();
   const [mood, setMood] = useState<string | null>(null);
-  const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
@@ -123,6 +130,8 @@ export default function SearchScreen() {
     setSelectedTrackId(null);
     setLoading(true);
     try {
+      const time = currentTimeOfDay();
+      console.log("Current time: " + time);
       const token = await SpotifyAuth.get();
       const response = await fetch("/search", {
         method: "POST",
@@ -162,13 +171,6 @@ export default function SearchScreen() {
           options={MOOD_OPTIONS.map((option) => option.label)}
           selected={mood}
           onChange={setMood}
-        />
-        <SelectField
-          label="Time of Day"
-          placeholder="Select Time"
-          options={TIME_OPTIONS.map((option) => option.label)}
-          selected={time}
-          onChange={setTime}
         />
         <SearchButton onPress={onSearch} isLoading={loading} />
         {results.length > 0 ? (
