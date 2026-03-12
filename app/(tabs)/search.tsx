@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
@@ -45,6 +46,7 @@ type SearchResult = {
   artists: string;
   album_art: string | null;
   spotify_id: string;
+  audio_vector: number[];
 };
 
 function SearchButton({
@@ -87,8 +89,17 @@ function SearchButton({
   );
 }
 
+const LEARNING_RATE = 0.05;
+
+function nudgeVector(userVector: number[], songVector: number[], liked: boolean): number[] {
+  return userVector.map((val, i) => {
+    const delta = songVector[i] - val;
+    return liked ? val + LEARNING_RATE * delta : val - LEARNING_RATE * delta;
+  });
+}
+
 export default function SearchScreen() {
-  const { favoriteArtists, favoriteGenres, userVector } = usePreferences();
+  const { favoriteArtists, favoriteGenres, userVector, setUserVector } = usePreferences();
   const [mood, setMood] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -99,6 +110,14 @@ export default function SearchScreen() {
     { light: "#faf7f7", dark: "#202325" },
     "background",
   );
+
+  const onFeedback = (liked: boolean) => {
+    const song = results.find(s => s.spotify_id === selectedTrackId);
+    if (!song) return;
+    const updated = nudgeVector(userVector, song.audio_vector, liked);
+    setUserVector(updated);
+    setSelectedTrackId(null);
+  };
 
   const onSearch = async () => {
     setSelectedTrackId(null);
@@ -202,17 +221,25 @@ export default function SearchScreen() {
       </ScrollView>
 
       {selectedTrackId ? (
-        <View style={styles.playerContainer}>
-          <WebView
-            source={{
-              uri: `https://open.spotify.com/embed/track/${selectedTrackId}?utm_source=generator&theme=0`,
-            }}
-            style={styles.player}
-            allowsInlineMediaPlayback
-            mediaPlaybackRequiresUserAction={false}
-          />
-        </View>
-      ) : null}
+  <View style={styles.playerContainer}>
+    <WebView
+      source={{
+        uri: `https://open.spotify.com/embed/track/${selectedTrackId}?utm_source=generator&theme=0`,
+      }}
+      style={styles.player}
+      allowsInlineMediaPlayback
+      mediaPlaybackRequiresUserAction={false}
+    />
+    <View style={styles.feedbackRow}>
+      <TouchableOpacity style={styles.feedbackButton} onPress={() => onFeedback(true)}>
+        <ThemedText style={styles.feedbackButtonText}>👍</ThemedText>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.feedbackButton} onPress={() => onFeedback(false)}>
+        <ThemedText style={styles.feedbackButtonText}>👎</ThemedText>
+      </TouchableOpacity>
+    </View>
+  </View>
+) : null}
     </ThemedView>
   );
 }
@@ -224,7 +251,7 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingBottom: 200,
     paddingTop: 16,
     gap: 20,
   },
@@ -279,10 +306,27 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
-    backgroundColor: "#000",
+    height: 160,
+    backgroundColor: "#000",  
+    paddingTop: 8,
+    paddingBottom: 10,
   },
-  player: {
+  feedbackRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 75,
+    paddingVertical: 0,
+    backgroundColor: "#000",
+    height: 50,
+  },
+  feedbackButton: {
+    padding: 0,
+  },
+  feedbackButtonText: {
+    fontSize: 18,
+  },
+  player: { 
     flex: 1,
     backgroundColor: "#000",
   },

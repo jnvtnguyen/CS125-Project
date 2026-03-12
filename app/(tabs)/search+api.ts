@@ -4,6 +4,9 @@ API needs to return data in the form:
     track_name: 'Mock Song 1',
     album_name: 'Mock Album 1',
     artists: 'Mock Artist 1',
+    album_art: 'Mock URL',
+    spotify_id: 'Mock ID',
+    audio_vector: []
 }
 */
 import { fs, index } from "../data";
@@ -25,6 +28,7 @@ type SearchResult = {
   artists: string;
   album_art: string | null;
   spotify_id: string;
+  audio_vector: number[];
 };
 
 type SpotifyAPITrack = {
@@ -81,7 +85,9 @@ export async function POST(request: Request) {
       artists: spotify_data[i].artists[0].name,
       album_art: spotify_data[i].album.images?.[0]?.url ?? null,
       spotify_id: spotify_data[i].id,
+      audio_vector: fs.vectors[ranked_songs[i]]
     };
+
     results.push(result);
   }
 
@@ -96,6 +102,7 @@ function get_songs(mood: string, time: string): number[] {
     time_songs.includes(song),
   );
 
+  //returns array of doc ids
   return intersect;
 }
 
