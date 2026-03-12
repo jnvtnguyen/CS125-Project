@@ -10,6 +10,7 @@ import { MultiSelectField } from "@/components/select-fields";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { usePreferences } from "@/hooks/use-preferences";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
     setUserVector,
   } = usePreferences();
 
+  const router = useRouter();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSyncSpotify = async () => {
@@ -94,6 +96,16 @@ export default function SettingsScreen() {
             <ThemedText style={styles.syncButtonText}>Sync Spotify Profile</ThemedText>
           )}
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={async () => {
+            await SpotifyAuth.clear();
+            router.replace("/login");
+          }}
+          activeOpacity={0.8}
+        >
+          <ThemedText style={styles.logoutButtonText}>Log Out</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
     </ThemedView>
   );
@@ -132,6 +144,20 @@ const styles = StyleSheet.create({
   },
   syncButtonText: {
     color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  logoutButton: {
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#ff4444",
+    marginTop: 12,
+  },
+  logoutButtonText: {
+    color: "#ff4444",
     fontSize: 16,
     fontWeight: "600",
   },

@@ -100,18 +100,23 @@ function rank_songs(songs: number[]): number[] {
   return songs;
 }
 
-async function get_track(id: string, token: string): Promise<SpotifyAPITrack> {
+async function get_track(id: string, token: string): Promise<SpotifyAPITrack | null> {
   const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
+  if (!response.ok) {
+    console.error(`Spotify API error for track ${id}: ${response.status}`);
+    return null;
+  }
+
   return response.json();
 }
 
 async function get_all_tracks(ids: string[], token: string): Promise<SpotifyAPITrack[]> {
-  let tracks = await Promise.all(ids.map((id) => get_track(id, token)));
+  let results = await Promise.all(ids.map((id) => get_track(id, token)));
 
-  return tracks;
+  return results.filter((t): t is SpotifyAPITrack => t !== null);
 }

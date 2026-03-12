@@ -1,6 +1,7 @@
 type AuthRequest = {
   code?: string;
   redirect_uri?: string;
+  refresh_token?: string;
 };
 
 type AccessData = {
@@ -8,13 +9,30 @@ type AccessData = {
   token_type: string;
   scope: string;
   expires_in: number;
-  refresh_token: string;
+  refresh_token?: string;
 };
 
 export async function POST(request: Request) {
   try {
-    const { code, redirect_uri }: AuthRequest = await request.json();
+    const { code, redirect_uri, refresh_token }: AuthRequest = await request.json();
 
+    // Handle token refresh
+    if (refresh_token) {
+      const refreshed = await refresh_access_token(refresh_token);
+      return new Response(
+        JSON.stringify({
+          status: "Success",
+          access_token: refreshed.access_token,
+          refresh_token: refreshed.refresh_token,
+          expires_in: refreshed.expires_in,
+          scope: refreshed.scope,
+          token_type: refreshed.token_type,
+        }),
+        { headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    // Handle initial authorization code exchange
     if (!code || !redirect_uri) {
       return new Response(
         JSON.stringify({ error: "Missing Code or Redirect URI." }),
@@ -60,6 +78,28 @@ async function get_access_token(code: string): Promise<AccessData> {
       grant_type: "authorization_code",
       code,
       redirect_uri: "algo-rhythm://spotify-auth-callback",
+    }),
+  });
+
+  return response.json();
+}
+
+async function refresh_access_token(refresh_token: string): Promise<AccessData> {
+  const response = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization:
+        "Basic " +
+        Buffer.from(
+          process.env.SPOTIFY_CLIENT_ID +
+            ":" +
+            process.env.SPOTIFY_CLIENT_SECRET,
+        ).toString("base64"),
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token,
     }),
   });
 
