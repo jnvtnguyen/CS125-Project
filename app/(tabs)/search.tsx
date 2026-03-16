@@ -7,23 +7,27 @@ Times (from analysis.py):
     Evening (6pm - 10pm)
     Night (10pm - 4am)
  */
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { WebView } from "react-native-webview";
+
+import * as Haptics from "expo-haptics";
 
 import { SpotifyAuth } from "@/app/spotify-auth";
 
 import { SelectField } from "@/components/select-fields";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { usePreferences } from "@/hooks/use-preferences";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
@@ -99,11 +103,55 @@ function SearchButton({
 
 const LEARNING_RATE = 0.05;
 
-function nudgeVector(userVector: number[], songVector: number[], liked: boolean): number[] {
+function nudgeVector(
+  userVector: number[],
+  songVector: number[],
+  liked: boolean,
+): number[] {
   return userVector.map((val, i) => {
     const delta = songVector[i] - val;
     return liked ? val + LEARNING_RATE * delta : val - LEARNING_RATE * delta;
   });
+}
+
+function FeedbackButton({
+  kind,
+  onPress,
+  disabled,
+  pending,
+}: {
+  kind: "like" | "dislike";
+  onPress: () => void;
+  disabled: boolean;
+  pending: boolean;
+}) {
+  const baseColor = kind === "like" ? "#1DB954" : "#FF3B30";
+  const label = kind === "like" ? "Like" : "Dislike";
+  const iconName = kind === "like" ? "hand.thumbsup.fill" : "hand.thumbsdown.fill";
+  const iconColor = disabled ? "#8E8E93" : baseColor;
+  const borderColor = pending ? baseColor : iconColor;
+  const backgroundColor = pending ? `${baseColor}22` : "transparent";
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.feedbackButton,
+        {
+          borderColor,
+          backgroundColor,
+          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
+        },
+      ]}
+    >
+      <IconSymbol name={iconName} size={18} color={iconColor} />
+      <ThemedText style={[styles.feedbackButtonText, { color: iconColor }]}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
 }
 
 export default function SearchScreen() {
@@ -112,27 +160,55 @@ export default function SearchScreen() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+  const [pendingFeedback, setPendingFeedback] = useState<"like" | "dislike" | null>(
+    null,
+  );
   const resultCardBorderColor = useThemeColor({}, "icon");
   const resultCardBackgroundColor = useThemeColor(
     { light: "#faf7f7", dark: "#202325" },
     "background",
   );
+  const playerContainerBackground = useThemeColor(
+    { light: "#0b0b0c", dark: "#000000" },
+    "background",
+  );
 
-  const onFeedback = (liked: boolean) => {
-    const song = results.find(s => s.spotify_id === selectedTrackId);
-    if (!song) return;
+  const onFeedback = async (liked: boolean) => {
+    if (!selectedTrackId || pendingFeedback) return;
+    setPendingFeedback(liked ? "like" : "dislike");
+    if (Platform.OS === "ios") {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // For Feedback on Like or Dislike
+    }
+
+    const song = results.find((s) => s.spotify_id === selectedTrackId);
+    if (!song) {
+      setPendingFeedback(null);
+      return;
+    }
     const updated = nudgeVector(userVector, song.audio_vector, liked);
     setUserVector(updated);
-    setSelectedTrackId(null);
+    setTimeout(() => {
+      setPendingFeedback(null);
+      setSelectedTrackId(null);
+    }, 250);
   };
 
   const onSearch = async () => {
     setSelectedTrackId(null);
+    setPendingFeedback(null);
     setLoading(true);
     try {
       const time = currentTimeOfDay();
       console.log("Current time: " + time);
+      if (!mood) {
+        console.error("Missing mood selection");
+        return;
+      }
       const token = await SpotifyAuth.get();
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
       const response = await fetch("/search", {
         method: "POST",
         headers: {
@@ -150,6 +226,13 @@ export default function SearchScreen() {
         }),
       });
       const data = await response.json();
+      if (!response.ok) {
+        console.error("Search API error:", response.status, data?.error ?? data);
+        if (response.status === 401) {
+          router.replace("/login");
+        }
+        return;
+      }
       setResults(data.results ?? []);
     } catch (error) {
       console.error("Search Failed:", error);
@@ -221,27 +304,55 @@ export default function SearchScreen() {
           </ThemedView>
         ) : null}
       </ScrollView>
-
       {selectedTrackId ? (
-  <View style={styles.playerContainer}>
-    <WebView
-      source={{
-        uri: `https://open.spotify.com/embed/track/${selectedTrackId}?utm_source=generator&theme=0`,
-      }}
-      style={styles.player}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-    />
-    <View style={styles.feedbackRow}>
-      <TouchableOpacity style={styles.feedbackButton} onPress={() => onFeedback(true)}>
-        <ThemedText style={styles.feedbackButtonText}>👍</ThemedText>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.feedbackButton} onPress={() => onFeedback(false)}>
-        <ThemedText style={styles.feedbackButtonText}>👎</ThemedText>
-      </TouchableOpacity>
-    </View>
-  </View>
-) : null}
+        <View
+          style={[
+            styles.playerContainer,
+            { backgroundColor: playerContainerBackground },
+          ]}
+        >
+          <View style={styles.playerHeaderRow}>
+            <ThemedText style={styles.playerHeaderText} numberOfLines={1}>
+              Preview & Feedback
+            </ThemedText>
+            <Pressable
+              onPress={() => {
+                setSelectedTrackId(null);
+                setPendingFeedback(null);
+              }}
+              style={({ pressed }) => [
+                styles.closeButton,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <IconSymbol name="xmark" size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
+          <WebView
+            key={selectedTrackId}
+            source={{
+              uri: `https://open.spotify.com/embed/track/${selectedTrackId}?utm_source=generator&theme=0`,
+            }}
+            style={styles.player}
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+          />
+          <View style={styles.feedbackRow}>
+            <FeedbackButton
+              kind="like"
+              disabled={loading}
+              pending={pendingFeedback === "like"}
+              onPress={() => onFeedback(true)}
+            />
+            <FeedbackButton
+              kind="dislike"
+              disabled={loading}
+              pending={pendingFeedback === "dislike"}
+              onPress={() => onFeedback(false)}
+            />
+          </View>
+        </View>
+      ) : null}
     </ThemedView>
   );
 }
@@ -308,29 +419,58 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 160,
-    backgroundColor: "#000",  
+    height: 192,
     paddingTop: 8,
     paddingBottom: 10,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  playerHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    paddingBottom: 6,
+  },
+  playerHeaderText: {
+    color: "#FFFFFF",
+    opacity: 0.9,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
   feedbackRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 75,
-    paddingVertical: 0,
-    backgroundColor: "#000",
-    height: 50,
+    gap: 14,
+    paddingTop: 10,
   },
   feedbackButton: {
-    padding: 0,
+    minHeight: 40,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   feedbackButtonText: {
-    fontSize: 18,
+    fontSize: 14,
+    fontWeight: "700",
   },
   player: { 
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "transparent",
   },
   noResultsTitle: {
     fontSize: 18,

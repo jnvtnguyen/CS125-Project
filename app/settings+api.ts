@@ -6,8 +6,13 @@ All values are normalized
 
 
 export async function POST(request: Request) {
-    const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-    if(!token) throw new Error("User not authenticated with Spotify");
+    const token = parseBearerToken(request.headers);
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Not authenticated with Spotify." }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const { artists, genres } = await get_top_artists_and_genres(token);
     const user_vector = await get_user_vector(token);
@@ -15,6 +20,18 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ artists, genres, user_vector}), {
     headers: { "Content-Type": "application/json" },
     });
+}
+
+function parseBearerToken(headers: Headers): string | null {
+  const raw = headers.get("Authorization");
+  if (!raw) return null;
+
+  const match = raw.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+
+  const token = match[1].trim();
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 }
 
 

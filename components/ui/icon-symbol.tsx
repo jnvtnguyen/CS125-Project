@@ -24,6 +24,9 @@ const MAPPING = {
   "gearshape.fill": "settings",
   "paintbrush.fill": "brush",
   magnifyingglass: "search",
+  "hand.thumbsup.fill": "thumb-up",
+  "hand.thumbsdown.fill": "thumb-down",
+  xmark: "close",
 } as IconMapping;
 
 /**
