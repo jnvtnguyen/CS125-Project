@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "CS125-Project",
+    "name": "Algo Rhythm",
     "slug": "main",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "cs125-project",
+    "scheme": "algo-rhythm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

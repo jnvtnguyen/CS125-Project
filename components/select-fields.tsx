@@ -1,9 +1,13 @@
-import { useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Dropdown, MultiSelect, type IMultiSelectRef } from 'react-native-element-dropdown';
+import { useMemo, useRef } from "react";
+import { StyleSheet, View } from "react-native";
+import {
+  Dropdown,
+  MultiSelect,
+  type IMultiSelectRef,
+} from "react-native-element-dropdown";
 
-import { ThemedText } from '@/components/themed-text';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { ThemedText } from "@/components/themed-text";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
 type MultiSelectFieldProps = {
   label: string;
@@ -29,14 +33,14 @@ export function MultiSelectField({
   onChange,
 }: MultiSelectFieldProps) {
   const dropdownRef = useRef<IMultiSelectRef | null>(null);
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
-  const tintColor = useThemeColor({}, 'tint');
-  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, "text");
+  const iconColor = useThemeColor({}, "icon");
+  const tintColor = useThemeColor({}, "tint");
+  const backgroundColor = useThemeColor({}, "background");
 
   const data = useMemo(
     () => options.map((option) => ({ label: option, value: option })),
-    [options]
+    [options],
   );
 
   return (
@@ -78,34 +82,34 @@ export function SelectField({
   selected,
   onChange,
 }: SelectFieldProps) {
-  const textColor = useThemeColor({}, 'text');
-  const iconColor = useThemeColor({}, 'icon');
-  const tintColor = useThemeColor({}, 'tint');
-  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, "text");
+  const iconColor = useThemeColor({}, "icon");
+  const tintColor = useThemeColor({}, "tint");
+  const backgroundColor = useThemeColor({}, "background");
 
   const data = useMemo(
     () => options.map((option) => ({ label: option, value: option })),
-    [options]
+    [options],
   );
 
   return (
     <View style={styles.section}>
       <ThemedText type="subtitle">{label}</ThemedText>
-        <Dropdown
-            data={data}
-            labelField="label"
-            valueField="value"
-            placeholder={placeholder}
-            value={selected}
-            onChange={(item) => onChange(item.value)}
-            style={[styles.dropdown, { borderColor: iconColor, backgroundColor }]}
-            placeholderStyle={[styles.placeholderText, { color: iconColor }]}
-            selectedTextStyle={[styles.selectedText, { color: textColor }]}
-            iconStyle={{ tintColor: iconColor }}
-            containerStyle={[styles.dropdownMenu, { backgroundColor }]}
-            itemTextStyle={{ color: textColor }}
-            activeColor={`${tintColor}22`}
-        />
+      <Dropdown
+        data={data}
+        labelField="label"
+        valueField="value"
+        placeholder={placeholder}
+        value={selected}
+        onChange={(item) => onChange(item.value)}
+        style={[styles.dropdown, { borderColor: iconColor, backgroundColor }]}
+        placeholderStyle={[styles.placeholderText, { color: iconColor }]}
+        selectedTextStyle={[styles.selectedText, { color: textColor }]}
+        iconStyle={{ tintColor: iconColor }}
+        containerStyle={[styles.dropdownMenu, { backgroundColor }]}
+        itemTextStyle={{ color: textColor }}
+        activeColor={`${tintColor}22`}
+      />
     </View>
   );
 }

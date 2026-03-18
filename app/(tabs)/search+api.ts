@@ -4,6 +4,9 @@ API needs to return data in the form:
     track_name: 'Mock Song 1',
     album_name: 'Mock Album 1',
     artists: 'Mock Artist 1',
+    album_art: 'Mock URL',
+    spotify_id: 'Mock ID',
+    audio_vector: []
 }
 */
 import { fs, index } from "../data";
@@ -28,13 +31,17 @@ type SearchData = {
   settings: {
     favoriteArtists: string[];
     favoriteGenres: string[];
-  }
+    userVector: number[];
+  };
 };
 
 type SearchResult = {
   track_name: string;
   album_name: string;
   artists: string;
+  album_art: string | null;
+  spotify_id: string;
+  audio_vector: number[];
 };
 
 type SpotifyAPITrack = {
@@ -54,7 +61,10 @@ type SpotifyAPITrack = {
 };
 
 export async function POST(request: Request) {
+  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
   const data: SearchData = await request.json();
+
+  if(!token) throw new Error("User not authenticated with Spotify");
 
   let mood: string = data.mood.toLowerCase();
   let time: string = data.time.toLowerCase();
@@ -79,7 +89,9 @@ export async function POST(request: Request) {
     }
   }
 
-  let spotify_data: SpotifyAPITrack[] = await get_all_tracks(spotify_codes);
+  let spotify_data: SpotifyAPITrack[] = await get_all_tracks(
+    spotify_codes, token
+  );
 
   let results: SearchResult[] = [];
   const seenTracks = new Set<string>();
@@ -92,8 +104,12 @@ export async function POST(request: Request) {
     let result: SearchResult = {
       track_name: spotify_data[i].name,
       album_name: spotify_data[i].album.name,
-      artists: spotify_data[i].artists[0].name
-    }
+      artists: spotify_data[i].artists[0].name,
+      album_art: spotify_data[i].album.images?.[0]?.url ?? null,
+      spotify_id: spotify_data[i].id,
+      audio_vector: fs.vectors[ranked_songs[i]]
+    };
+
     results.push(result);
   }
 
@@ -110,7 +126,6 @@ function get_songs(mood: string, time: string): number[] {
 }
 
 function narrow_by_preferences(songs: number[], settings: SearchData['settings']): number[] {
-  // Build a set of doc IDs from favorite artists and genres
   const preferredDocIds = new Set<number>();
 
   for (const artist of settings?.favoriteArtists ?? []) {
@@ -123,13 +138,10 @@ function narrow_by_preferences(songs: number[], settings: SearchData['settings']
     if (docs) docs.forEach(id => preferredDocIds.add(id));
   }
 
-  // If no preferences set, return all candidates
   if (preferredDocIds.size === 0) return songs;
 
-  // Filter to only songs that match preferences
   const narrowed = songs.filter(id => preferredDocIds.has(id));
 
-  // If we have enough narrowed results, use them; otherwise fall back to all
   return narrowed.length >= MAX_RESULTS ? narrowed : songs;
 }
 
@@ -157,42 +169,23 @@ function rank_songs(songs: number[], mood: string): number[] {
   return scored.map(s => s.docId);
 }
 
-async function get_access_token(): Promise<string> {
-  let response = await fetch("https://accounts.spotify.com/api/token", {
-    method: "POST",
+async function get_track(id: string, token: string): Promise<SpotifyAPITrack | null> {
+  const response = await fetch(`https://api.spotify.com/v1/tracks/${id}`, {
     headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization: "Basic " + Buffer.from(
-        process.env.SPOTIFY_CLIENT_ID + ":" + process.env.SPOTIFY_CLIENT_SECRET
-      ).toString("base64"),
+      Authorization: `Bearer ${token}`,
     },
-    body: "grant_type=client_credentials",
   });
 
-  let data = await response.json();
-  return data.access_token;
-}
-
-async function get_track(id: string, token: string): Promise<SpotifyAPITrack> {
-  const response = await fetch(
-    `https://api.spotify.com/v1/tracks/${id}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  if (!response.ok) {
+    console.error(`Spotify API error for track ${id}: ${response.status}`);
+    return null;
+  }
 
   return response.json();
 }
 
-async function get_all_tracks(ids: string[]): Promise<SpotifyAPITrack[]> {
-  const token = await get_access_token();
+async function get_all_tracks(ids: string[], token: string): Promise<SpotifyAPITrack[]> {
+  let results = await Promise.all(ids.map((id) => get_track(id, token)));
 
-  let tracks = await Promise.all(
-    ids.map(id => get_track(id, token))
-  );
-
-  console.log(tracks);
-  return tracks
+  return results.filter((t): t is SpotifyAPITrack => t !== null);
 }
