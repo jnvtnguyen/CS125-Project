@@ -51,7 +51,7 @@ async function get_top_artists_and_genres(token: string): Promise<{artists: stri
     for (const artist of data.items)
     {
         artists.push(artist.name);
-        for(const genre of artist.genres) genres_temp.push(genre)
+        for(const genre of artist.genres ?? []) genres_temp.push(genre)
     }
     let genres = [...new Set(genres_temp)];
     return {artists, genres};
