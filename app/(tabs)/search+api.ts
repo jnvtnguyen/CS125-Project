@@ -75,6 +75,15 @@ export async function POST(request: Request) {
   // Step 2: Narrow down to songs from favorite artists/genres if possible
   let candidates = narrow_by_preferences(all_candidates, data.settings);
 
+  // Step 2b: If no preferred songs match mood+time, try mood-only + preferences
+  if (candidates === all_candidates) {
+    const mood_only = index.mood[mood] ?? [];
+    const mood_narrowed = narrow_by_preferences(mood_only, data.settings);
+    if (mood_narrowed !== mood_only) {
+      candidates = mood_narrowed;
+    }
+  }
+
   // Step 3: Rank by cosine similarity to the ideal mood vector
   let ranked_songs: number[] = rank_songs(candidates, mood);
 
@@ -142,7 +151,7 @@ function narrow_by_preferences(songs: number[], settings: SearchData['settings']
 
   const narrowed = songs.filter(id => preferredDocIds.has(id));
 
-  return narrowed.length >= MAX_RESULTS ? narrowed : songs;
+  return narrowed.length > 0 ? narrowed : songs;
 }
 
 function cosine_similarity(a: number[], b: number[]): number {

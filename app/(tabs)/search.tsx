@@ -7,8 +7,9 @@ Times (from analysis.py):
     Evening (6pm - 10pm)
     Night (10pm - 4am)
  */
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -155,7 +156,14 @@ function FeedbackButton({
 }
 
 export default function SearchScreen() {
-  const { favoriteArtists, favoriteGenres, userVector, setUserVector } = usePreferences();
+  const { favoriteArtists, favoriteGenres, userVector, setUserVector, refresh } = usePreferences();
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
+
   const [mood, setMood] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
