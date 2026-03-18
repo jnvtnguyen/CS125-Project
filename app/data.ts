@@ -20,7 +20,6 @@
 import fsJSON from "../Index/fstore.json";
 import indexJSON from "../Index/index.json";
 
-
 type InvertedIndex = {
   [field: string]: {
     [term: string]: number[];
