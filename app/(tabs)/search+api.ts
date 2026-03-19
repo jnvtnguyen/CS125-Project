@@ -72,20 +72,11 @@ export async function POST(request: Request) {
   // Step 1: Get all songs matching mood + time
   let all_candidates: number[] = get_songs(mood, time);
 
-  // Step 2: Narrow down to songs from favorite artists/genres if possible
-  let candidates = narrow_by_preferences(all_candidates, data.settings);
+  // Step 2: Grab all songs that would have a bonus applied from matching artist/genre
+  let preferredDocIDs = narrow_by_preferences(data.settings);
 
-  // Step 2b: If no preferred songs match mood+time, try mood-only + preferences
-  if (candidates === all_candidates) {
-    const mood_only = index.mood[mood] ?? [];
-    const mood_narrowed = narrow_by_preferences(mood_only, data.settings);
-    if (mood_narrowed !== mood_only) {
-      candidates = mood_narrowed;
-    }
-  }
-
-  // Step 3: Rank by cosine similarity to the ideal mood vector
-  let ranked_songs: number[] = rank_songs(candidates, mood);
+  // Step 3: Rank by cosine similarity to the ideal mood vector & user vector, giving bonuses based on the artist/genre
+  let ranked_songs: number[] = rank_songs(all_candidates, mood, preferredDocIDs, data.settings.userVector);
 
   let spotify_codes: string[] = [];
   const seen = new Set<string>();
@@ -134,7 +125,7 @@ function get_songs(mood: string, time: string): number[] {
   return intersect;
 }
 
-function narrow_by_preferences(songs: number[], settings: SearchData['settings']): number[] {
+function narrow_by_preferences(settings: SearchData['settings']): Set<number> {
   const preferredDocIds = new Set<number>();
 
   for (const artist of settings?.favoriteArtists ?? []) {
@@ -147,11 +138,7 @@ function narrow_by_preferences(songs: number[], settings: SearchData['settings']
     if (docs) docs.forEach(id => preferredDocIds.add(id));
   }
 
-  if (preferredDocIds.size === 0) return songs;
-
-  const narrowed = songs.filter(id => preferredDocIds.has(id));
-
-  return narrowed.length > 0 ? narrowed : songs;
+  return preferredDocIds;
 }
 
 function cosine_similarity(a: number[], b: number[]): number {
@@ -165,12 +152,15 @@ function cosine_similarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-function rank_songs(songs: number[], mood: string): number[] {
+function rank_songs(songs: number[], mood: string, preferredDocIds: Set<number>, userVector: number[]): number[] {
   const idealVector = MOOD_VECTORS[mood] ?? [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+  const PREFERENCE_BONUS = 0.1;
 
   const scored = songs.map(docId => ({
     docId,
-    score: cosine_similarity(fs.vectors[docId], idealVector),
+    score: (.6 * cosine_similarity(fs.vectors[docId], idealVector) +
+            .4 * cosine_similarity(fs.vectors[docId], userVector) + 
+            (preferredDocIds.has(docId) ? PREFERENCE_BONUS : 0)),
   }));
 
   scored.sort((a, b) => b.score - a.score);
